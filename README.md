@@ -1,2 +1,7 @@
 # angel_server
-Angels' Island Server
+
+$ vertx run server.js &
+
+or run script:
+$ ./startup.sh
+
