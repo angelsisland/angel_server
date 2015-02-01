@@ -6,35 +6,45 @@ var api = require('api.js');
 
 vertx.createHttpServer().requestHandler(function(request) {
 	var path = request.path();
+	var timeString = new Date().toISOString().replace(/T/g, " ").replace(/....Z/g, "");
+	console.log('[' + timeString + '] Request path : ' + path);
+
+	// --------------------------------
+	// /api/*
+	// --------------------------------
 	var apiMatches = new RegExp('^/api/([a-z]+)$').exec(path);
 	var apiMethod = (apiMatches) ? api[apiMatches[1]] : null;
-
-	var timeString = new Date().toISOString().replace(/T/g, " ").replace(/....Z/g, "");
-	console.log('[' + timeString + '] Request path : ' + request.path());
 	if (apiMethod) {
 		request.bodyHandler(function(body) {
-			console.log('Request body :');
-			console.log(body);
+			console.log('Request body :\n' + body);
 
-			var param = JSON.parse(body);
-			var content = JSON.stringify(apiMethod(param));
-			request.response.headers().set('Content-Length', content.length);
-			request.response.write(content);
-			request.response.end();
+			var param = body.length() ? JSON.parse(body) : {};
+			apiMethod(param, function(result) {
+				var response = JSON.stringify(result);
+				request.response.headers().set('Content-Length', response.length);
+				request.response.write(response);
+				request.response.end();
 
-			console.log('Response body :');
-			console.log(content);
+				console.log('Response :\n' + response);
+			});
 		});
 
 		return;
 	}
 
+	// --------------------------------
+	// /test/test.*
+	// --------------------------------
 	var testMatches = new RegExp('^/test/test\.(html|js)$').exec(request.path());
-
 	if (testMatches) {
 		request.response.sendFile('.' + testMatches[0]);
-	} else {
-		request.response.statusCode(404).statusMessage("Not Found").end();
+
+		return;
 	}
+
+	// --------------------------------
+	// Other
+	// --------------------------------
+	request.response.statusCode(404).statusMessage("Not Found").end();
 }).listen(8080);
 

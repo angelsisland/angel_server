@@ -1,5 +1,23 @@
 'use strict';
 
+var vertx = require('vertx');
+var container = require('vertx/container');
+var console = require('vertx/console');
+
+// ----------------------------------------------------------------
+// Database module setup
+// ----------------------------------------------------------------
+var mysql_config = {
+	connection : 'MySQL',
+	username : 'angel',
+	password : 'next1234',
+	database : 'angel'
+};
+container.deployModule('io.vertx~mod-mysql-postgresql_2.11~0.3.1', mysql_config, 1);
+
+// ----------------------------------------------------------------
+// Api functions
+// ----------------------------------------------------------------
 module.exports = (function() {
 	var dummy = {
 		post : [
@@ -16,30 +34,103 @@ module.exports = (function() {
 		userinfo : { nickname : "라파엘", level : 3, point : 100, need : 200 }
 	};
 
+	var dao = {
+		need : {
+			query : function(param) {
+				var category = param.category ? param.category : 'solace';	// for test
+				return {
+					action : 'prepared',
+					statement : 'SELECT post.id, title, post.contents, photo FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE category=? GROUP BY post.id ORDER BY COUNT(reply.id) LIMIT 4',
+					values : [category]
+				};
+			},
+			arr2obj : function(arr) {
+				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
+			}
+		},
+		mypost : {
+			query : function(param) {
+				var writer = param.writer ? param.writer : 'TestAngel1';	// for test
+				var category = param.category ? param.category : 'solace';	// for test
+				return {
+					action : 'prepared',
+					statement : 'SELECT id, title, contents, photo FROM post WHERE writer=? AND category=? LIMIT 5',
+					values : [writer, category]
+				};
+			},
+			arr2obj : function(arr) {
+				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
+			}
+		},
+		letter : {
+			query : function(param) {
+				return {
+					action : 'prepared',
+					statement : 'SELECT id, title, contents, photo FROM post WHERE category=? LIMIT 8',
+					values : ['letter']
+				};
+			},
+			arr2obj : function(arr) {
+				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
+			}
+		},
+		view : {
+			query : function(param) {
+				var id = param.id ? param.id : 1;		// for test
+				return {
+					action : 'prepared',
+					statement : 'SELECT id, writer, contents FROM reply WHERE post_id=?',
+					values : [id]
+				};
+			},
+			arr2obj : function(arr) {
+				return { id : arr[0], writer : arr[1], comment : arr[2] };
+			}
+		}
+	};
+
+	function sendQuery(dao, param, handler) {
+		console.log('Query : ' + JSON.stringify(dao.query(param)));
+		vertx.eventBus.send('campudus.asyncdb', dao.query(param), function(reply) {
+			var result = [];
+			if (reply.status === 'ok') {
+				reply.results.forEach(function(element) {
+					result.push(dao.arr2obj(element));
+				});
+			} else {
+				console.log('DB Error : ' + JSON.stringify(reply).replace(/\\n/g, "\n"));
+			}
+			handler(result);
+		});
+	}
+
 	return {
-		setname : function() {
-			return dummy.result_succeed;
+		newuser : function(param, handler) {
+			handler(dummy.result_succeed);
 		},
-		need : function() {
-			return dummy.post;
+		login : function(param, handler) {
+			handler(dummy.result_succeed);
 		},
-		mypost : function() {
-			return dummy.post;
+		need : function(param, handler) {
+			sendQuery(dao.need, param, handler);
 		},
-		letter : function() {
-			return dummy.post;
+		mypost : function(param, handler) {
+			sendQuery(dao.mypost, param, handler);
 		},
-		view : function() {
-			return dummy.comment;
+		letter : function(param, handler) {
+			sendQuery(dao.letter, param, handler);
 		},
-		write : function() {
-			return dummy.result_succeed;
+		view : function(param, handler) {
+			sendQuery(dao.view, param, handler);
 		},
-		comment : function() {
-			return dummy.comment;
+		write : function(param, handler) {
+			handler(dummy.result_succeed);
 		},
-		userinfo : function() {
-			return dummy.userinfo;
+		comment : function(param, handler) {
+			handler(dummy.comment);
+		},
+		userinfo : function(param, handler) {
+			handler(dummy.userinfo);
 		}
 	};
 })();
