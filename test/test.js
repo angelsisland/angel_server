@@ -103,3 +103,20 @@ QUnit.test( 'api/view test', function( assert ) {
 	});
 });
 
+QUnit.test( 'api/write test', function( assert ) {
+	assert.expect(1);
+	var done = assert.async();
+	var postData = { category : 'solace', writer : 'TestAngel1', title : 'Test Title', contents : 'blah\nblah\nblah...' };
+
+	$.ajax({
+		url : '/api/write',
+		type : 'POST',
+		data : JSON.stringify(postData),
+		datatype : 'json'
+	}).done(function(data) {
+		console.log('api/write test :\n' + data.replace(/\\n/g, "\n"));
+		assert.equal( JSON.parse(data).result, 'succeed', 'api/write test' );
+		done();
+	});
+});
+

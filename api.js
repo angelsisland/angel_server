@@ -86,10 +86,24 @@ module.exports = (function() {
 			arr2obj : function(arr) {
 				return { id : arr[0], writer : arr[1], comment : arr[2] };
 			}
+		},
+		write : {
+			query : function(param) {
+				var category = param.category;
+				var writer = param.writer;
+				var title = param.title;
+				var contents = param.contents;
+				return {
+					action : 'insert',
+					table : 'post',
+					fields : ['category', 'writer', 'title', 'contents'],
+					values : [[category, writer, title, contents]]
+				};
+			}
 		}
 	};
 
-	function sendQuery(dao, param, handler) {
+	function selectQuery(dao, param, handler) {
 		console.log('Query : ' + JSON.stringify(dao.query(param)));
 		vertx.eventBus.send('campudus.asyncdb', dao.query(param), function(reply) {
 			var result = [];
@@ -104,6 +118,21 @@ module.exports = (function() {
 		});
 	}
 
+	function insertQuery(dao, param, handler) {
+		console.log('Query : ' + JSON.stringify(dao.query(param)));
+		vertx.eventBus.send('campudus.asyncdb', dao.query(param), function(reply) {
+			var result = {};
+			if (reply.status === 'ok') {
+				result.result = "succeed";
+			} else {
+				result.result = "failed";
+				result.error = "Unknown error";
+				console.log('DB Error : ' + JSON.stringify(reply).replace(/\\n/g, "\n"));
+			}
+			handler(result);
+		});
+	}
+
 	return {
 		newuser : function(param, handler) {
 			handler(dummy.result_succeed);
@@ -112,19 +141,19 @@ module.exports = (function() {
 			handler(dummy.result_succeed);
 		},
 		need : function(param, handler) {
-			sendQuery(dao.need, param, handler);
+			selectQuery(dao.need, param, handler);
 		},
 		mypost : function(param, handler) {
-			sendQuery(dao.mypost, param, handler);
+			selectQuery(dao.mypost, param, handler);
 		},
 		letter : function(param, handler) {
-			sendQuery(dao.letter, param, handler);
+			selectQuery(dao.letter, param, handler);
 		},
 		view : function(param, handler) {
-			sendQuery(dao.view, param, handler);
+			selectQuery(dao.view, param, handler);
 		},
 		write : function(param, handler) {
-			handler(dummy.result_succeed);
+			insertQuery(dao.write, param, handler);
 		},
 		comment : function(param, handler) {
 			handler(dummy.comment);
