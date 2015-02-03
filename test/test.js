@@ -15,7 +15,7 @@ QUnit.test( 'api/login(new) test', function( assert ) {
 		data : JSON.stringify(postData),
 		datatype : 'json'
 	}).done(function(data) {
-		console.log('api/login test :\n' + data.replace(/\\n/g, "\n"));
+		console.log('api/login test :\n' + data);
 		assert.equal( JSON.parse(data).result, 'succeed', 'api/login error' );
 		done();
 	});
@@ -106,7 +106,7 @@ QUnit.test( 'api/view test', function( assert ) {
 QUnit.test( 'api/write test', function( assert ) {
 	assert.expect(1);
 	var done = assert.async();
-	var postData = { category : 'solace', writer : 'TestAngel1', title : 'Test Title', contents : 'blah\nblah\nblah...' };
+	var postData = { category : 'solace', title : 'Test Title', contents : 'blah\nblah\nblah...' };
 
 	$.ajax({
 		url : '/api/write',
@@ -116,6 +116,23 @@ QUnit.test( 'api/write test', function( assert ) {
 	}).done(function(data) {
 		console.log('api/write test :\n' + data.replace(/\\n/g, "\n"));
 		assert.equal( JSON.parse(data).result, 'succeed', 'api/write test' );
+		done();
+	});
+});
+
+QUnit.test( 'api/comment test', function( assert ) {
+	assert.expect(1);
+	var done = assert.async();
+	var postData = { contents : 'blah\nblah\nblah...' };
+
+	$.ajax({
+		url : '/api/comment',
+		type : 'POST',
+		data : JSON.stringify(postData),
+		datatype : 'json'
+	}).done(function(data) {
+		console.log('api/comment test :\n' + data.replace(/\\n/g, "\n"));
+		assert.equal( JSON.parse(data).result, 'succeed', 'api/comment test' );
 		done();
 	});
 });

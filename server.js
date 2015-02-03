@@ -19,6 +19,7 @@ vertx.createHttpServer().requestHandler(function(request) {
 			console.log('Request body :\n' + body);
 
 			var param = body.length() ? JSON.parse(body) : {};
+			param.user_id = 1;
 			apiMethod(param, function(result) {
 				var response = JSON.stringify(result);
 				request.response.headers().set('Content-Length', response.length);

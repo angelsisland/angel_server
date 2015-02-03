@@ -37,41 +37,42 @@ module.exports = (function() {
 	var dao = {
 		need : {
 			query : function(param) {
-				var category = param.category ? param.category : 'solace';	// for test
+				var category = param.category ? param.category : 'solace';	// temp
+				var writer = param.user_id ? param.user_id : 1;	// temp
 				return {
 					action : 'prepared',
-					statement : 'SELECT post.id, title, post.contents, photo FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE category=? GROUP BY post.id ORDER BY COUNT(reply.id) LIMIT 4',
-					values : [category]
-				};
-			},
-			arr2obj : function(arr) {
-				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
-			}
-		},
-		mypost : {
-			query : function(param) {
-				var writer = param.writer ? param.writer : 'TestAngel1';	// for test
-				var category = param.category ? param.category : 'solace';	// for test
-				return {
-					action : 'prepared',
-					statement : 'SELECT id, title, contents, photo FROM post WHERE writer=? AND category=? LIMIT 5',
+					statement : 'SELECT post.id, post.writer, title, post.contents FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE writer!=? AND category=? GROUP BY post.id ORDER BY COUNT(reply.id) LIMIT 4',
 					values : [writer, category]
 				};
 			},
 			arr2obj : function(arr) {
-				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
+				return { id : arr[0], writer : arr[1], title : arr[2], contents : arr[3], commentnum :0 };
+			}
+		},
+		mypost : {
+			query : function(param) {
+				var writer = param.writer ? param.writer : 'TestAngel1';	// temp
+				var category = param.category ? param.category : 'solace';	// temp
+				return {
+					action : 'prepared',
+					statement : 'SELECT post.id, post.writer, title, post.contents, COUNT(reply.id) FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE writer=? AND category=? LIMIT 5',
+					values : [writer, category]
+				};
+			},
+			arr2obj : function(arr) {
+				return { id : arr[0], writer : arr[1], title : arr[2], contents : arr[3], commentnum : arr[4] };
 			}
 		},
 		letter : {
 			query : function(param) {
 				return {
 					action : 'prepared',
-					statement : 'SELECT id, title, contents, photo FROM post WHERE category=? LIMIT 8',
+					statement : 'SELECT title, contents FROM post WHERE category=? LIMIT 8',
 					values : ['letter']
 				};
 			},
 			arr2obj : function(arr) {
-				return { id : arr[0], title : arr[1], contents : arr[2], photo : arr[3] };
+				return { title : arr[0], contents : arr[1] };
 			}
 		},
 		view : {
@@ -79,18 +80,18 @@ module.exports = (function() {
 				var id = param.id ? param.id : 1;		// for test
 				return {
 					action : 'prepared',
-					statement : 'SELECT id, writer, contents FROM reply WHERE post_id=?',
+					statement : 'SELECT writer, contents FROM reply WHERE post_id=?',
 					values : [id]
 				};
 			},
 			arr2obj : function(arr) {
-				return { id : arr[0], writer : arr[1], comment : arr[2] };
+				return { writer : arr[0], contents : arr[1] };
 			}
 		},
 		write : {
 			query : function(param) {
 				var category = param.category;
-				var writer = param.writer;
+				var writer = param.user_id;
 				var title = param.title;
 				var contents = param.contents;
 				return {
@@ -98,6 +99,20 @@ module.exports = (function() {
 					table : 'post',
 					fields : ['category', 'writer', 'title', 'contents'],
 					values : [[category, writer, title, contents]]
+				};
+			}
+		},
+		comment : {
+			query : function(param) {
+				var post_id = param.post_id;
+				var writer = param.user_id;
+				var title = param.title;
+				var contents = param.contents;
+				return {
+					action : 'insert',
+					table : 'post',
+					fields : ['category', 'writer', 'contents'],
+					values : [[category, writer, contents]]
 				};
 			}
 		}
@@ -134,9 +149,6 @@ module.exports = (function() {
 	}
 
 	return {
-		newuser : function(param, handler) {
-			handler(dummy.result_succeed);
-		},
 		login : function(param, handler) {
 			handler(dummy.result_succeed);
 		},
@@ -156,7 +168,7 @@ module.exports = (function() {
 			insertQuery(dao.write, param, handler);
 		},
 		comment : function(param, handler) {
-			handler(dummy.comment);
+			insertQuery(dao.comment, param, handler);
 		},
 		userinfo : function(param, handler) {
 			handler(dummy.userinfo);
