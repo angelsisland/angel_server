@@ -7,7 +7,7 @@
 QUnit.test( 'api/login(new) test', function( assert ) {
 	assert.expect(1);
 	var done = assert.async();
-	var postData = { authkey : '{access-token}', name : "NewAngel" };
+	var postData = { id : 1, authkey : '{access-token}', name : "NewAngel" };
 
 	$.ajax({
 		url : '/api/login',
@@ -24,7 +24,7 @@ QUnit.test( 'api/login(new) test', function( assert ) {
 QUnit.test( 'api/login test', function( assert ) {
 	assert.expect(1);
 	var done = assert.async();
-	var postData = { authkey : '{access-token}' };
+	var postData = { id : 1, authkey : '{access-token}' };
 
 	$.ajax({
 		url : '/api/login',
@@ -58,7 +58,7 @@ QUnit.test( 'api/need test', function( assert ) {
 QUnit.test( 'api/mypost test', function( assert ) {
 	assert.expect(1);
 	var done = assert.async();
-	var postData = { category : 'solace' };
+	var postData = { category : 'praise' };
 
 	$.ajax({
 		url : '/api/mypost',
@@ -123,7 +123,7 @@ QUnit.test( 'api/write test', function( assert ) {
 QUnit.test( 'api/comment test', function( assert ) {
 	assert.expect(1);
 	var done = assert.async();
-	var postData = { contents : 'blah\nblah\nblah...' };
+	var postData = { post_id : 1, contents : 'blah\nblah\nblah...' };
 
 	$.ajax({
 		url : '/api/comment',
@@ -133,6 +133,20 @@ QUnit.test( 'api/comment test', function( assert ) {
 	}).done(function(data) {
 		console.log('api/comment test :\n' + data.replace(/\\n/g, "\n"));
 		assert.equal( JSON.parse(data).result, 'succeed', 'api/comment test' );
+		done();
+	});
+});
+
+QUnit.test( 'api/userinfo test', function( assert ) {
+	assert.expect(1);
+	var done = assert.async();
+
+	$.ajax({
+		url : '/api/userinfo',
+		type : 'GET',
+	}).done(function(data) {
+		console.log('api/userinfo test :\n' + data.replace(/\\n/g, "\n"));
+		assert.notEqual( JSON.parse(data).length, 0, 'api/userinfo test' );
 		done();
 	});
 });

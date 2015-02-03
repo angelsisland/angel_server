@@ -4,10 +4,20 @@ var vertx = require('vertx');
 var console = require('vertx/console');
 var api = require('api.js');
 
+// ----------------------------------------------------------------
+// Run server
+// ----------------------------------------------------------------
 vertx.createHttpServer().requestHandler(function(request) {
 	var path = request.path();
 	var timeString = new Date().toISOString().replace(/T/g, " ").replace(/....Z/g, "");
 	console.log('[' + timeString + '] Request path : ' + path);
+
+	// --------------------------------
+	// Session check
+	// --------------------------------
+	var cookie = request.headers().get('Cookie');
+	var session = cookie ? cookie.replace(/session=/g, "") : null;
+	console.log("HEADER(Session) " + session);
 
 	// --------------------------------
 	// /api/*
@@ -19,10 +29,13 @@ vertx.createHttpServer().requestHandler(function(request) {
 			console.log('Request body :\n' + body);
 
 			var param = body.length() ? JSON.parse(body) : {};
-			param.user_id = 1;
-			apiMethod(param, function(result) {
+			param.user_id = session;
+			apiMethod(param, function(result, session) {
+				if (session) {
+					request.response.headers().set('Set-Cookie', 'session=' + session);
+				}
 				var response = JSON.stringify(result);
-				request.response.headers().set('Content-Length', response.length);
+				request.response.headers().set('Content-Length', new vertx.Buffer(response).length());
 				request.response.write(response);
 				request.response.end();
 

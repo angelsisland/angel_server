@@ -23,11 +23,11 @@ USE `angel`;
 DROP TABLE IF EXISTS `user`;
 -- Table `user`
 CREATE TABLE `user` (
-	`facebook` VARCHAR(64) NOT NULL,
+	`facebook_id` VARCHAR(64) NOT NULL,
 	`nickname` VARCHAR(64) NOT NULL,
 	`gender` CHAR(1) NOT NULL,
 	`point` INTEGER NOT NULL,
-	PRIMARY KEY(`facebook`)
+	PRIMARY KEY(`facebook_id`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8;
 
 USE `angel`;
@@ -36,6 +36,7 @@ DROP TABLE IF EXISTS `post`;
 CREATE TABLE `post` (
 	`id` INTEGER NOT NULL AUTO_INCREMENT,
 	`category` VARCHAR(16) NOT NULL,
+	`facebook_id` VARCHAR(64) NOT NULL,
 	`writer` VARCHAR(64) NOT NULL,
 	`title` VARCHAR(64) NOT NULL,
 	`contents` TEXT NOT NULL,
@@ -49,6 +50,7 @@ DROP TABLE IF EXISTS `reply`;
 CREATE TABLE `reply` (
 	`id` INTEGER NOT NULL AUTO_INCREMENT,
 	`post_id` INTEGER NOT NULL,
+	`facebook_id` VARCHAR(64) NOT NULL,
 	`writer` VARCHAR(64) NOT NULL,
 	`contents` TEXT NOT NULL,
 	PRIMARY KEY(`id`)

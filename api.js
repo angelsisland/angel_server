@@ -16,6 +16,11 @@ var mysql_config = {
 container.deployModule('io.vertx~mod-mysql-postgresql_2.11~0.3.1', mysql_config, 1);
 
 // ----------------------------------------------------------------
+// Session module setup
+// ----------------------------------------------------------------
+container.deployModule('com.campudus~session-manager~2.0.1-final', {}, 1);
+
+// ----------------------------------------------------------------
 // Api functions
 // ----------------------------------------------------------------
 module.exports = (function() {
@@ -38,10 +43,10 @@ module.exports = (function() {
 		need : {
 			query : function(param) {
 				var category = param.category ? param.category : 'solace';	// temp
-				var writer = param.user_id ? param.user_id : 1;	// temp
+				var writer = param.user_id ? param.user_id : '1';	// temp
 				return {
 					action : 'prepared',
-					statement : 'SELECT post.id, post.writer, title, post.contents FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE writer!=? AND category=? GROUP BY post.id ORDER BY COUNT(reply.id) LIMIT 4',
+					statement : 'SELECT post.id, post.writer, title, post.contents FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE post.facebook_id<>? AND category=? GROUP BY post.id ORDER BY COUNT(reply.id) LIMIT 4',
 					values : [writer, category]
 				};
 			},
@@ -51,11 +56,11 @@ module.exports = (function() {
 		},
 		mypost : {
 			query : function(param) {
-				var writer = param.writer ? param.writer : 'TestAngel1';	// temp
 				var category = param.category ? param.category : 'solace';	// temp
+				var writer = param.user_id ? param.user_id : '1';	// temp
 				return {
 					action : 'prepared',
-					statement : 'SELECT post.id, post.writer, title, post.contents, COUNT(reply.id) FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE writer=? AND category=? LIMIT 5',
+					statement : 'SELECT post.id, post.writer, title, post.contents, COUNT(reply.id) FROM post LEFT JOIN reply ON post.id = reply.post_id WHERE post.facebook_id=? AND category=? GROUP BY post.id LIMIT 5',
 					values : [writer, category]
 				};
 			},
@@ -91,29 +96,57 @@ module.exports = (function() {
 		write : {
 			query : function(param) {
 				var category = param.category;
-				var writer = param.user_id;
+				var facebook_id = param.user_id;
+				var writer = 'TestAngel' + facebook_id;
 				var title = param.title;
 				var contents = param.contents;
 				return {
 					action : 'insert',
 					table : 'post',
-					fields : ['category', 'writer', 'title', 'contents'],
-					values : [[category, writer, title, contents]]
+					fields : ['category', 'facebook_id', 'writer', 'title', 'contents'],
+					values : [[category, facebook_id, writer, title, contents]]
 				};
 			}
 		},
 		comment : {
 			query : function(param) {
 				var post_id = param.post_id;
-				var writer = param.user_id;
-				var title = param.title;
+				var facebook_id = param.user_id;
+				var writer = 'TestAngel' + facebook_id;
 				var contents = param.contents;
 				return {
 					action : 'insert',
-					table : 'post',
-					fields : ['category', 'writer', 'contents'],
-					values : [[category, writer, contents]]
+					table : 'reply',
+					fields : ['post_id', 'facebook_id', 'writer', 'contents'],
+					values : [[post_id, facebook_id, writer, contents]]
 				};
+			}
+		},
+		userinfo : {
+			query : function(param) {
+				var id = param.user_id ? param.user_id : '1';		// for test
+				return {
+					action : 'prepared',
+					statement : 'SELECT nickname, point FROM user WHERE facebook_id=?',
+					values : [id]
+				};
+			},
+			arr2obj : function(arr) {
+				var point = arr[1];
+				var level = 0;
+				if (point > 10) {
+					point -= 10;
+					level++;
+				}
+				if (point > 100) {
+					point -= 100;
+					level++;
+				}
+				if (point > 1000) {
+					point -= 1000;
+					level++;
+				}
+				return { nickname : arr[0], level : level, point : point };
 			}
 		}
 	};
@@ -150,7 +183,24 @@ module.exports = (function() {
 
 	return {
 		login : function(param, handler) {
-			handler(dummy.result_succeed);
+			var id = param.id ? param.id : 1;
+			var query = {
+				action : 'prepared',
+				statement : 'SELECT nickname FROM user WHERE facebook_id=?',
+				values : [id]
+			};
+
+			console.log('Query : ' + JSON.stringify(query));
+			vertx.eventBus.send('campudus.asyncdb', query, function(reply) {
+				reply.status = 'ok';
+				reply.results = [['testnick']];
+				if (reply.status === 'ok' && reply.results.length == 1) {
+					var nickname = reply.results[0][0];
+				} else {
+					console.log('DB Error : ' + JSON.stringify(reply).replace(/\\n/g, "\n"));
+				}
+				handler(dummy.result_succeed, id);
+			});
 		},
 		need : function(param, handler) {
 			selectQuery(dao.need, param, handler);
@@ -168,10 +218,25 @@ module.exports = (function() {
 			insertQuery(dao.write, param, handler);
 		},
 		comment : function(param, handler) {
-			insertQuery(dao.comment, param, handler);
+			var id = param.userid ? param.userid : '1';
+			var query = {
+				action : 'prepared',
+				statement : 'UPDATE user SET point=point+1 WHERE facebook_id=?',
+				values : [id]
+			};
+
+			console.log('Query : ' + JSON.stringify(query));
+			vertx.eventBus.send('campudus.asyncdb', query, function(reply) {
+				if (reply.status === 'ok') {
+					insertQuery(dao.comment, param, handler);
+				} else {
+					console.log('DB Error : ' + JSON.stringify(reply).replace(/\\n/g, "\n"));
+					handler(dummy.result_failed, id);
+				}
+			});
 		},
 		userinfo : function(param, handler) {
-			handler(dummy.userinfo);
+			selectQuery(dao.userinfo, param, handler);
 		}
 	};
 })();
