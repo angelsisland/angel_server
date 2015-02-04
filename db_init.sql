@@ -25,7 +25,6 @@ DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
 	`facebook_id` VARCHAR(64) NOT NULL,
 	`nickname` VARCHAR(64) NOT NULL,
-	`gender` CHAR(1) NOT NULL,
 	`point` INTEGER NOT NULL,
 	PRIMARY KEY(`facebook_id`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8;
